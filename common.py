@@ -3,10 +3,6 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 
-class TaskStatus(Enum):
-    VALID = "valid"
-    INVALID = "invalid"
-
 
 class Term(BaseModel):
     section: str
@@ -35,4 +31,4 @@ class TaskJudgement(BaseModel):
     # ideally we'd use max_length, but OpenAI Structured Outputs don't support it
     explanation: str = Field(description="Short chain-of-thought reasoning for whether the task should be accepted or not.")
     ambiguous: bool = Field(description="Whether the validity of the task is ambiguous.")
-    task_status: TaskStatus
+    is_valid: bool = Field(description="Whether the task is valid or not.")

@@ -4,17 +4,15 @@ import urllib
 
 from fasthtml.common import *
 
-from common import Task, TaskJudgement, TaskStatus, Term, TermList
+from common import Task, TaskJudgement, Term, TermList
 from analysis import docx_path_to_paragraphs, text_to_terms, read_tasks, validate_task
-from terms_cache import CACHE_DIR, cache_result, get_terms_data
+from terms_cache import CACHE_DIR, CACHE_DIR_JUDGEMENT, cache_terms, get_terms_data, cache_judgement
 
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 hdrs = (HighlightJS(langs=["javascript"]),)
 app, rt = fast_app(debug=DEBUG, live=DEBUG, hdrs=hdrs)
-
-os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def code(text, wrap=True):
@@ -51,7 +49,7 @@ def process_and_cache(uf: UploadFile):
     fname = get_fname(uf)
     paragraphs = docx_path_to_paragraphs(uf.file)
     terms = text_to_terms(paragraphs)
-    cache_result(fname, paragraphs, terms)
+    cache_terms(fname, paragraphs, terms)
 
 
 def term_table(terms: TermList):
@@ -146,12 +144,12 @@ def task_table(terms_fname: str, tasks: list[Task]):
         ],
     )
 
-def judgement(tj: TaskJudgement):
+def display_judgement(tj: TaskJudgement):
     ambiguity = ""
     if tj.ambiguous:
         ambiguity = P("Ambiguous, please verify", style="color: orange;")
     return Div(
-        H5(tj.task_status.name.capitalize()),
+        H5("Valid" if tj.is_valid else "Invalid"),
         ambiguity,
         P(tj.explanation)
     )
@@ -169,7 +167,9 @@ def validate_single_task(terms_fname: str, task_description: str, task_amount: s
 
     _, terms = term_data
     task = Task(description=task_description, amount=task_amount)
-    return judgement(validate_task(task, terms))
+    judgement = validate_task(task, terms)
+    cache_judgement(task, terms, judgement)
+    return display_judgement(judgement)
 
 
 @app.post("/upload_tasks/{terms_fname}")

@@ -9,7 +9,7 @@ import pandas as pd
 from openai import OpenAI
 from fastcore.parallel import threaded
 
-from common import TaskStatus, Term, TermList, Task, TaskRelevancy, TaskJudgement
+from common import Term, TermList, Task, TaskRelevancy, TaskJudgement
 from terms_cache import get_terms_data
 
 
@@ -92,7 +92,7 @@ def validate_task(task: Task, terms: TermList) -> TaskJudgement:
             related_terms=TermList(terms=[]),
             explanation=f"The task {strength} not relevant to the main objective of the contract.",
             ambiguous=is_ambiguous,
-            task_status=TaskStatus.INVALID,
+            is_valid=False,
         )
     client = OpenAI()
 
