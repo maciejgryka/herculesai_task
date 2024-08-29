@@ -86,10 +86,10 @@ def terms_or_spinner(fname):
     terms_data = get_terms_data(fname)
     if terms_data is None:
         return Div(
-            "Analyzing...",
+            "Analyzing (this might take up to a minute for larger contracts)...",
             id=f"terms-{fname}",
             hx_post=f"/terms/{fname}",
-            hx_trigger="every 1s",
+            hx_trigger="every 2s",
             hx_swap="outerHTML",
             style="animation: fadeInOut 2s infinite;",
         )
