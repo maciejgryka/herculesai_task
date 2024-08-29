@@ -3,7 +3,7 @@ import json
 
 from fasthtml.common import *
 
-from common import Term
+from common import Term, TermList
 from analysis import docx_path_to_paragraphs, text_to_terms
 from terms_cache import CACHE_DIR, cache_result, get_terms_data
 
@@ -47,31 +47,23 @@ def process_and_cache(uf: UploadFile):
     cache_result(fname, paragraphs, terms)
 
 
-def term_table(terms: list[Term]):
+def term_table(terms: TermList):
     return Table(
         Tr(Th("Section"), Th("Name"), Th("Description")),
-        *[Tr(Td(term.section), Td(term.name), Td(term.description)) for term in terms],
+        *[
+            Tr(
+                Td(term.section),
+                Td(term.name),
+                Td(term.description),
+            )
+            for term in terms.terms
+        ],
     )
 
 
 def terms_or_spinner(fname):
-    if data := get_terms_data(fname):
-        paragraphs = "\n".join(data["paragraphs"])
-        terms = [Term.model_validate(t) for t in data["terms"]]
-
-        return Div(
-            Div(
-                H3("Original Contract"),
-                Pre(paragraphs, style="white-space: pre-wrap; padding: 1rem;"),
-                style="margin-top: 1rem; margin-bottom: 2rem; max-height: 300px; overflow: scroll;",
-            ),
-            Div(
-                H3("Extracted Terms"),
-                A("Download JSON", href=f"/{fname}.json"),
-                term_table(terms),
-            ),
-        )
-    else:
+    terms_data = get_terms_data(fname)
+    if terms_data is None:
         return Div(
             "Analyzing...",
             id=f"terms-{fname}",
@@ -79,6 +71,22 @@ def terms_or_spinner(fname):
             hx_trigger="every 1s",
             hx_swap="outerHTML",
         )
+
+    paragraphs, terms = terms_data
+    paragraphs = "\n".join(paragraphs)
+
+    return Div(
+        Div(
+            H3("Original Contract"),
+            Pre(paragraphs, style="white-space: pre-wrap; padding: 1rem;"),
+            style="margin-top: 1rem; margin-bottom: 2rem; max-height: 300px; overflow: scroll;",
+        ),
+        Div(
+            H3("Extracted Terms"),
+            A("Download JSON", href=f"/{fname}.json"),
+            term_table(terms),
+        ),
+    )
 
 
 @app.post("/terms/{fname}")

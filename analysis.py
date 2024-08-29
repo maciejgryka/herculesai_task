@@ -48,7 +48,7 @@ def text_to_terms(text: list[str]) -> TermList:
     )
 
     term_list = completion.choices[0].message.parsed
-    return term_list.terms
+    return term_list
 
 
 def validate_task(task: Task, terms: TermList) -> TaskJudgement:

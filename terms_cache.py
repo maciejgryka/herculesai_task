@@ -17,12 +17,12 @@ def get_terms_data(fname: str) -> Tuple[list[str], TermList] | None:
         return None
 
 
-def cache_result(fname: str, paragraphs: list[str], terms: list[Term]) -> str:
+def cache_result(fname: str, paragraphs: list[str], terms: TermList) -> str:
     path = f"{CACHE_DIR}/{fname}.json"
     with open(path, "w") as f:
         data = {
             "paragraphs": paragraphs,
-            "terms": [t.model_dump() for t in terms],
+            "terms": [t.model_dump() for t in terms.terms],
         }
         json.dump(data, f)
     return path
