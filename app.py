@@ -12,7 +12,10 @@ from terms_cache import CACHE_DIR, CACHE_DIR_JUDGEMENT, cache_terms, get_terms_d
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 
-hdrs = (HighlightJS(langs=["javascript"]),)
+hdrs = (
+    HighlightJS(langs=["javascript"]),
+    Style("@keyframes fadeInOut { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }")
+)
 app, rt = fast_app(debug=DEBUG, live=DEBUG, hdrs=hdrs)
 
 
@@ -76,6 +79,7 @@ def terms_or_spinner(fname):
             hx_post=f"/terms/{fname}",
             hx_trigger="every 1s",
             hx_swap="outerHTML",
+            style="animation: fadeInOut 2s infinite;"
         )
 
     paragraphs, terms = terms_data
@@ -162,7 +166,10 @@ def display_judgement(task_hash:str):
         fname = f"{CACHE_DIR}/{task_hash}.json"
         return Div("Analyzing...", id=f'jgd-{task_hash}',
                    hx_post=f"/judgement/{task_hash}",
-                   hx_trigger='every 1s', hx_swap='outerHTML')
+                   hx_trigger='every 2s',
+                   hx_swap='outerHTML',
+                   style="animation: fadeInOut 2s infinite;"
+        )
 
 
 @app.post("/judgement/{task_hash}")
