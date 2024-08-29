@@ -1,16 +1,14 @@
 # from enum import Enum
-import json
 from typing import Tuple
 
 import docx
+
 # from pydantic import BaseModel, Field
-from fasthtml.xtend import is_
 import pandas as pd
 from openai import OpenAI
-from fastcore.parallel import threaded
 
-from common import Term, TermList, Task, TaskRelevancy, TaskJudgement
-from terms_cache import get_terms_data
+from herculesai_task.common import TermList, Task, TaskRelevancy, TaskJudgement
+from herculesai_task.terms_cache import get_terms_data
 
 
 def docx_path_to_paragraphs(file_path) -> list[str]:
@@ -22,10 +20,11 @@ def docx_path_to_paragraphs(file_path) -> list[str]:
 
 
 def system_message() -> dict[str, str]:
-    return  {
+    return {
         "role": "system",
         "content": "You are a helpful and meticulous legal assistant.",
     }
+
 
 def text_to_terms(text: list[str]) -> TermList:
     client = OpenAI()
@@ -73,9 +72,9 @@ def is_task_relevant(task: Task, terms: TermList) -> Tuple[bool, bool]:
                     ```
 
                     The task is: "{task.description}"
-                """
-            }
-        ]
+                """,
+            },
+        ],
     )
     relevancy = completion.choices[0].message.parsed
     if relevancy is None:
@@ -116,9 +115,9 @@ def validate_task(task: Task, terms: TermList) -> TaskJudgement:
                 {task.json()}
                 ```
 
-                """
-            }
-        ]
+                """,
+            },
+        ],
     )
     judgement = completion.choices[0].message.parsed
 

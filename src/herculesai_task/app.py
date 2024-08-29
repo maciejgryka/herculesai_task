@@ -1,20 +1,33 @@
 import os
-import json
 import urllib
 
 from fastcore.parallel import threaded
 from fasthtml.common import *
 
-from common import Task, TaskJudgement, Term, TermList
-from analysis import docx_path_to_paragraphs, text_to_terms, read_tasks, validate_task
-from terms_cache import CACHE_DIR, CACHE_DIR_JUDGEMENT, cache_terms, get_terms_data, cache_judgement, get_cached_judgement, task_judgement_cache_key
+from herculesai_task.common import Task, TermList
+from herculesai_task.analysis import (
+    docx_path_to_paragraphs,
+    text_to_terms,
+    read_tasks,
+    validate_task,
+)
+from herculesai_task.terms_cache import (
+    CACHE_DIR,
+    cache_terms,
+    get_terms_data,
+    cache_judgement,
+    get_cached_judgement,
+    task_judgement_cache_key,
+)
 
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 hdrs = (
     HighlightJS(langs=["javascript"]),
-    Style("@keyframes fadeInOut { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }")
+    Style(
+        "@keyframes fadeInOut { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }"
+    ),
 )
 app, rt = fast_app(debug=DEBUG, live=DEBUG, hdrs=hdrs)
 
@@ -41,7 +54,10 @@ def terms(r: Request):
             post="upload",
             hx_swap="outerHTML",
         )
-    return Titled("Terms", content,)
+    return Titled(
+        "Terms",
+        content,
+    )
 
 
 def get_fname(uf: UploadFile) -> str:
@@ -60,11 +76,7 @@ def term_table(terms: TermList):
     return Table(
         Tr(Th("Section"), Th("Name"), Th("Description")),
         *[
-            Tr(
-                Td(term.section),
-                Td(term.name),
-                Td(term.description)
-            )
+            Tr(Td(term.section), Td(term.name), Td(term.description))
             for term in terms.terms
         ],
     )
@@ -79,7 +91,7 @@ def terms_or_spinner(fname):
             hx_post=f"/terms/{fname}",
             hx_trigger="every 1s",
             hx_swap="outerHTML",
-            style="animation: fadeInOut 2s infinite;"
+            style="animation: fadeInOut 2s infinite;",
         )
 
     paragraphs, terms = terms_data
@@ -94,7 +106,11 @@ def terms_or_spinner(fname):
         Div(
             H3("Extracted Terms"),
             A("Download JSON", href=f"/{fname}.json"),
-            A(Button("Validate task list"), href=f"/validate/{fname}", style="float: right"),
+            A(
+                Button("Validate task list"),
+                href=f"/validate/{fname}",
+                style="float: right",
+            ),
             term_table(terms),
         ),
     )
@@ -123,19 +139,26 @@ async def upload(uf: UploadFile):
 
 @app.get("/validate/{terms_fname}")
 def validate(terms_fname: str):
-    return Titled("Tasks", Form(
-        Input(name="uf", placeholder="Choose a task file (.xslx)", type="file"),
-        Hidden(terms_fname),
-        Button("Submit", type="submit"),
-        id="upload-form",
-        hx_post=f"/upload_tasks/{terms_fname}",
-        hx_swap="outerHTML",
-    ))
+    return Titled(
+        "Tasks",
+        Form(
+            Input(name="uf", placeholder="Choose a task file (.xslx)", type="file"),
+            Hidden(terms_fname),
+            Button("Submit", type="submit"),
+            id="upload-form",
+            hx_post=f"/upload_tasks/{terms_fname}",
+            hx_swap="outerHTML",
+        ),
+    )
 
 
 def task_table(terms_fname: str, tasks: list[Task]):
     def validate_button(fname, task):
-        return Button("Validate", hx_post=f"/validate/{fname}/{task.description}/{task.amount}", hx_swap="outerHTML")
+        return Button(
+            "Validate",
+            hx_post=f"/validate/{fname}/{task.description}/{task.amount}",
+            hx_swap="outerHTML",
+        )
 
     return Table(
         Tr(Th("Description"), Th("Amount"), Th("Status")),
@@ -149,7 +172,8 @@ def task_table(terms_fname: str, tasks: list[Task]):
         ],
     )
 
-def display_judgement(task_hash:str):
+
+def display_judgement(task_hash: str):
     judgement = get_cached_judgement(task_hash)
     if judgement is not None:
         print("cached judgement found")
@@ -159,21 +183,23 @@ def display_judgement(task_hash:str):
         return Div(
             H5("Valid" if judgement.is_valid else "Invalid"),
             ambiguity,
-            P(judgement.explanation)
+            P(judgement.explanation),
         )
     else:
         print("cached judgement not found")
-        fname = f"{CACHE_DIR}/{task_hash}.json"
-        return Div("Analyzing...", id=f'jgd-{task_hash}',
-                   hx_post=f"/judgement/{task_hash}",
-                   hx_trigger='every 2s',
-                   hx_swap='outerHTML',
-                   style="animation: fadeInOut 2s infinite;"
+        return Div(
+            "Analyzing...",
+            id=f"jgd-{task_hash}",
+            hx_post=f"/judgement/{task_hash}",
+            hx_trigger="every 2s",
+            hx_swap="outerHTML",
+            style="animation: fadeInOut 2s infinite;",
         )
 
 
 @app.post("/judgement/{task_hash}")
-def get(task_hash: str): return display_judgement(task_hash)
+def judgement_by_hash(task_hash: str):
+    return display_judgement(task_hash)
 
 
 @threaded
@@ -197,10 +223,7 @@ def validate_single_task(terms_fname: str, task_description: str, task_amount: s
     _, terms = term_data
     task = Task(description=task_description, amount=task_amount)
     task_hash = task_judgement_cache_key(task.description, terms)
-    judgement = get_cached_judgement(task_hash)
     generate_and_save_judgement(task, terms)
-    # judgement = validate_task(task, terms)
-    # cache_judgement(task, terms, judgement)
     return display_judgement(task_hash)
 
 
@@ -209,7 +232,6 @@ async def upload_tasks(terms_fname: str, uf: UploadFile):
     if not uf.filename.endswith(".xlsx"):
         return "Invalid file type, expected .xlsx"
 
-    fname = get_fname(uf)
     tasks = read_tasks(uf.file)
     return task_table(terms_fname, tasks)
 

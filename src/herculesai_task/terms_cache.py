@@ -1,9 +1,9 @@
 import os
 import json
 import hashlib
-
 from typing import Tuple
-from common import Term, TermList, Task, TaskJudgement
+
+from herculesai_task.common import Term, TermList, Task, TaskJudgement
 
 
 CACHE_DIR = "terms_cache"
