@@ -133,21 +133,3 @@ def read_tasks(fpath):
         Task(description=r["Task Description"], amount=r["Amount"])
         for _, r in pd.read_excel(fpath).iterrows()
     ]
-
-
-if __name__ == "__main__":
-    # file_path = "data/Contract + Amendment example v3 .docx"
-    # text_content = docx_path_to_paragraphs(file_path)
-    # terms = text_to_terms(text_content)
-    # for term in terms:
-    #     print(f"{term.section}: {term.name} - {term.description}\n---")
-
-    cached_data = get_terms_data("Contract + Amendment example v3 .docx")
-    if not cached_data:
-        raise RuntimeError("No cached data found")
-
-    _, terms = cached_data
-    tasks = read_tasks("data/Task example v3.xlsx")
-    for task in tasks[:5]:
-        print(validate_task(task, terms))
-        print("---")
