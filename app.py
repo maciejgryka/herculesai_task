@@ -22,17 +22,23 @@ def code(text, wrap=True):
 
 
 @app.get("/")
-def terms():
-    return Titled(
-        "Terms",
-        Form(
+def terms(r: Request):
+    content = ""
+    if "fname" in r.query_params:
+        fname = r.query_params["fname"]
+        if get_terms_data(fname) is None:
+            content = "No data found for this file."
+        else:
+            content = terms_or_spinner(r.query_params["fname"])
+    else:
+        content = Form(
             Input(name="uf", placeholder="Enter text here", type="file"),
             Button("Submit", type="submit"),
             id="upload-form",
             post="upload",
             hx_swap="outerHTML",
-        ),
-    )
+        )
+    return Titled("Terms", content,)
 
 
 def get_fname(uf: UploadFile) -> str:
