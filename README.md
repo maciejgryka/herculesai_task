@@ -52,9 +52,17 @@ This was a relatively simple task to achieve when it comes to prompt engineering
 
 ## Validating Tasks
 
-This was more challenging, because I struggled with deciding how strict the validation should be.
+This was more challenging, because I struggled with deciding how strict the validation should be (see more below). After making that decision, I opted for a two-stage approach:
+
+- first, check whether the task is relevant to the main objective of the contract,
+- if it isn't, reject it early,
+- if it is, check whether it violates any of the terms extracted.
+
+The downside of this approach is cost (more OpenAI tokens used), but the upside is speed: in many cases we can reject the task early and save time analyzing which terms are relevant.
 
 ## Bonus: Handling ambiguous cases
+
+Handling ambiguous cases was "just" a matter of adding another boolean field to the structure output schema and explaining to the model how to use it. I think it does a reasonabel job of reflecting uncertainty in the answers.
 
 ## Technical Choices & Trade-offs
 
