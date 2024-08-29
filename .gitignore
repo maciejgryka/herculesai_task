@@ -108,3 +108,5 @@ scripts/img/*.png
 .pytest_cache/
 .mypy_cache/
 .cache
+
+terms_cache/

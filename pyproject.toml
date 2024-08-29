@@ -8,8 +8,21 @@ dependencies = [
     "python-docx>=1.1.2",
     "openai>=1.42.0",
     "pydantic>=2.8.2",
+    "python-fasthtml>=0.4.5",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.6.2",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff.lint]
+ignore = ["F403", "F405"]
