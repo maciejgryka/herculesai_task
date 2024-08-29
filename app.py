@@ -2,11 +2,12 @@ import os
 import json
 import urllib
 
+from fastcore.parallel import threaded
 from fasthtml.common import *
 
 from common import Task, TaskJudgement, Term, TermList
 from analysis import docx_path_to_paragraphs, text_to_terms, read_tasks, validate_task
-from terms_cache import CACHE_DIR, CACHE_DIR_JUDGEMENT, cache_terms, get_terms_data, cache_judgement
+from terms_cache import CACHE_DIR, CACHE_DIR_JUDGEMENT, cache_terms, get_terms_data, cache_judgement, get_cached_judgement, task_judgement_cache_key
 
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
@@ -144,16 +145,37 @@ def task_table(terms_fname: str, tasks: list[Task]):
         ],
     )
 
-def display_judgement(tj: TaskJudgement):
-    ambiguity = ""
-    if tj.ambiguous:
-        ambiguity = P("Ambiguous, please verify", style="color: orange;")
-    return Div(
-        H5("Valid" if tj.is_valid else "Invalid"),
-        ambiguity,
-        P(tj.explanation)
-    )
+def display_judgement(task_hash:str):
+    judgement = get_cached_judgement(task_hash)
+    if judgement is not None:
+        print("cached judgement found")
+        ambiguity = ""
+        if judgement.ambiguous:
+            ambiguity = P("Ambiguous, please verify", style="color: orange;")
+        return Div(
+            H5("Valid" if judgement.is_valid else "Invalid"),
+            ambiguity,
+            P(judgement.explanation)
+        )
+    else:
+        print("cached judgement not found")
+        fname = f"{CACHE_DIR}/{task_hash}.json"
+        return Div("Analyzing...", id=f'jgd-{task_hash}',
+                   hx_post=f"/judgement/{task_hash}",
+                   hx_trigger='every 1s', hx_swap='outerHTML')
 
+
+@app.post("/judgement/{task_hash}")
+def get(task_hash: str): return display_judgement(task_hash)
+
+
+@threaded
+def generate_and_save_judgement(task: Task, terms: TermList):
+    task_hash = task_judgement_cache_key(task.description, terms)
+    if get_cached_judgement(task_hash) is not None:
+        return
+    judgement = validate_task(task, terms)
+    cache_judgement(task, terms, judgement)
 
 
 @app.post("/validate/{terms_fname}/{task_description}/{task_amount}")
@@ -167,9 +189,12 @@ def validate_single_task(terms_fname: str, task_description: str, task_amount: s
 
     _, terms = term_data
     task = Task(description=task_description, amount=task_amount)
-    judgement = validate_task(task, terms)
-    cache_judgement(task, terms, judgement)
-    return display_judgement(judgement)
+    task_hash = task_judgement_cache_key(task.description, terms)
+    judgement = get_cached_judgement(task_hash)
+    generate_and_save_judgement(task, terms)
+    # judgement = validate_task(task, terms)
+    # cache_judgement(task, terms, judgement)
+    return display_judgement(task_hash)
 
 
 @app.post("/upload_tasks/{terms_fname}")

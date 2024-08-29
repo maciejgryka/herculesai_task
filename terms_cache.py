@@ -5,10 +5,13 @@ import hashlib
 from typing import Tuple
 from common import Term, TermList, Task, TaskJudgement
 
+
 CACHE_DIR = "terms_cache"
 CACHE_DIR_JUDGEMENT = f"{CACHE_DIR}/judgements"
 
+
 os.makedirs(CACHE_DIR_JUDGEMENT, exist_ok=True)
+
 
 def get_terms_data(fname: str) -> Tuple[list[str], TermList] | None:
     if os.path.exists(f"{CACHE_DIR}/{fname}.json"):
@@ -38,7 +41,16 @@ def task_judgement_cache_key(task: str, terms: TermList) -> str:
 
 def cache_judgement(task: Task, terms: TermList, judgement: TaskJudgement) -> str:
     key = task_judgement_cache_key(task.description, terms)
-    path = f"{CACHE_DIR}/{key}.json"
+    path = f"{CACHE_DIR_JUDGEMENT}/{key}.json"
     with open(path, "w") as f:
         json.dump(judgement.model_dump(), f)
     return path
+
+
+def get_cached_judgement(task_hash: str) -> TaskJudgement | None:
+    path = f"{CACHE_DIR_JUDGEMENT}/{task_hash}.json"
+    if os.path.exists(path):
+        with open(path) as f:
+            return TaskJudgement.model_validate(json.load(f))
+    else:
+        return None
