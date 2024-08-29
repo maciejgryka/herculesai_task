@@ -5,6 +5,7 @@ import docx
 # from pydantic import BaseModel, Field
 import pandas as pd
 from openai import OpenAI
+from fastcore.parallel import threaded
 
 from common import TaskStatus, Term, TermList, Task, TaskJudgement
 from terms_cache import get_terms_data
@@ -28,7 +29,7 @@ def text_to_terms(text: list[str]) -> TermList:
     client = OpenAI()
 
     completion = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
+        model="gpt-4o-2024-08-06",
         response_format=TermList,
         messages=[
             system_message(),
@@ -50,7 +51,6 @@ def text_to_terms(text: list[str]) -> TermList:
     term_list = completion.choices[0].message.parsed
     return term_list
 
-
 def validate_task(task: Task, terms: TermList) -> TaskJudgement:
     client = OpenAI()
 
@@ -62,16 +62,18 @@ def validate_task(task: Task, terms: TermList) -> TaskJudgement:
             {
                 "role": "user",
                 "content": f"""
-                Review the task below and determine whether it violates any of the terms extracted from a contract. Task:
-
-                ```json
-                {task.json()}
-                ```
+                Review the task below and the provided contract terms and determine whether the task is relevant to the object of the contract. If it is, determine whether it violates any of the terms extracted from the contract. If the task validity is completely clear, mark it accordingly, but if there's any doubt, mark it as ambiguous and guess which validity more likely.
 
                 Terms extracted from the contract:
                 ```json
                 {terms.json()}
                 ```
+
+                The task is:
+                ```json
+                {task.json()}
+                ```
+
                 """
             }
         ]

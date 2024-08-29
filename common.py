@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 class TaskStatus(Enum):
     VALID = "valid"
     INVALID = "invalid"
-    AMBIGUOUS = "ambiguous"
 
 
 class Term(BaseModel):
@@ -26,5 +25,10 @@ class Task(BaseModel):
 
 class TaskJudgement(BaseModel):
     task: Task
+    contract_objective: str = Field(description="The main objective of the contract")
+    relevant: bool = Field(description="Whether the task is relevant to the main objective of the contract")
+    related_terms: TermList = Field(description="The terms related to the task")
+    # ideally we'd use max_length, but OpenAI Structured Outputs don't support it
+    explanation: str = Field(description="Short chain-of-thought reasoning for whether the task should be accepted or not.")
+    ambiguous: bool = Field(description="Whether the validity of the task is ambiguous.")
     task_status: TaskStatus
-    related_terms: TermList
