@@ -1,29 +1,19 @@
 import os
 import json
 
-import docx
-
 from fasthtml.common import *
 
-from analysis import Term, text_to_terms
+from common import Term
+from analysis import docx_path_to_paragraphs, text_to_terms
+from terms_cache import CACHE_DIR, cache_result, get_terms_data
 
 
 DEBUG = os.environ.get("DEBUG", "0") == "1"
 
-hdrs = (HighlightJS(langs=['javascript']),)
+hdrs = (HighlightJS(langs=["javascript"]),)
 app, rt = fast_app(debug=DEBUG, live=DEBUG, hdrs=hdrs)
 
-terms_cache = {}
-cache_dir = "terms_cache"
-os.makedirs(cache_dir, exist_ok=True)
-
-
-def docx_path_to_paragraphs(file_path) -> list[str]:
-    return [
-        paragraph.text.strip()
-        for paragraph in docx.Document(file_path).paragraphs
-        if paragraph.text
-    ]
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 
 def code(text, wrap=True):
@@ -33,25 +23,16 @@ def code(text, wrap=True):
 
 @app.get("/")
 def terms():
-    return Titled("Terms",
+    return Titled(
+        "Terms",
         Form(
             Input(name="uf", placeholder="Enter text here", type="file"),
             Button("Submit", type="submit"),
             id="upload-form",
             post="upload",
-            hx_swap="outerHTML"
-        ))
-
-
-def cache_result(fname: str, paragraphs: list[str], terms: list[Term]) -> str:
-    path = f"{cache_dir}/{fname}.json"
-    with open(path, "w") as f:
-        data = {
-            "paragraphs": paragraphs,
-            "terms": [t.model_dump() for t in terms],
-        }
-        json.dump(data, f)
-    return path
+            hx_swap="outerHTML",
+        ),
+    )
 
 
 def get_fname(uf: UploadFile) -> str:
@@ -72,10 +53,9 @@ def term_table(terms: list[Term]):
         *[Tr(Td(term.section), Td(term.name), Td(term.description)) for term in terms],
     )
 
+
 def terms_or_spinner(fname):
-    if os.path.exists(f"{cache_dir}/{fname}.json"):
-        with open(f"{cache_dir}/{fname}.json") as f:
-            data = json.load(f)
+    if data := get_terms_data(fname):
         paragraphs = "\n".join(data["paragraphs"])
         terms = [Term.model_validate(t) for t in data["terms"]]
 
@@ -83,34 +63,43 @@ def terms_or_spinner(fname):
             Div(
                 H3("Original Contract"),
                 Pre(paragraphs, style="white-space: pre-wrap; padding: 1rem;"),
-                style="margin-top: 1rem; margin-bottom: 2rem; max-height: 300px; overflow: scroll;"
+                style="margin-top: 1rem; margin-bottom: 2rem; max-height: 300px; overflow: scroll;",
             ),
             Div(
                 H3("Extracted Terms"),
                 A("Download JSON", href=f"/{fname}.json"),
-                term_table(terms)
-            )
+                term_table(terms),
+            ),
         )
     else:
-        return Div("Analyzing...", id=f'terms-{fname}',
-                   hx_post=f"/terms/{fname}",
-                   hx_trigger='every 1s', hx_swap='outerHTML')
+        return Div(
+            "Analyzing...",
+            id=f"terms-{fname}",
+            hx_post=f"/terms/{fname}",
+            hx_trigger="every 1s",
+            hx_swap="outerHTML",
+        )
 
 
 @app.post("/terms/{fname}")
-def get(fname:str): return terms_or_spinner(fname)
+def get(fname: str):
+    return terms_or_spinner(fname)
+
 
 # For the JSON files
 @app.get("/{fname:path}.json")
-def static(fname:str): return FileResponse(f'{cache_dir}/{fname}.json')
+def static(fname: str):
+    return FileResponse(f"{CACHE_DIR}/{fname}.json")
+
 
 @app.post("/upload")
-async def upload(uf:UploadFile):
+async def upload(uf: UploadFile):
     if not uf.filename.endswith(".docx"):
         return "Invalid file type, expected .docx"
 
     fname = get_fname(uf)
     process_and_cache(uf)
     return terms_or_spinner(fname)
+
 
 serve()

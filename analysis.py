@@ -1,16 +1,13 @@
+# from enum import Enum
+import json
+
 import docx
+# from pydantic import BaseModel, Field
+import pandas as pd
 from openai import OpenAI
-from pydantic import BaseModel
 
-
-class Term(BaseModel):
-    section: str
-    name: str
-    description: str
-
-
-class TermList(BaseModel):
-    terms: list[Term]
+from common import TaskStatus, Term, TermList, Task, TaskJudgement
+from terms_cache import get_terms_data
 
 
 def docx_path_to_paragraphs(file_path) -> list[str]:
@@ -21,17 +18,20 @@ def docx_path_to_paragraphs(file_path) -> list[str]:
     ]
 
 
-def text_to_terms(text: list[str]) -> list[Term]:
+def system_message() -> dict[str, str]:
+    return  {
+        "role": "system",
+        "content": "You are a helpful and meticulous legal assistant.",
+    }
+
+def text_to_terms(text: list[str]) -> TermList:
     client = OpenAI()
 
     completion = client.beta.chat.completions.parse(
         model="gpt-4o-mini",
         response_format=TermList,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful and meticulous legal assistant.",
-            },
+            system_message(),
             {
                 "role": "user",
                 "content": f"""
@@ -51,13 +51,60 @@ def text_to_terms(text: list[str]) -> list[Term]:
     return term_list.terms
 
 
-if __name__ == "__main__":
-    file_path = "data/Contract + Amendment example v3 .docx"
-    text_content = docx_path_to_paragraphs(file_path)
-    terms = text_to_terms(text_content)
-    for term in terms:
-        print(f"{term.section}: {term.name} - {term.description}\n---")
+def validate_task(task: Task, terms: TermList) -> TaskJudgement:
+    client = OpenAI()
 
-    # cache the terms in a JSON file
-    # for each line item in the CSV file
-    # find relevant terms and decide whether the item violates them
+    completion = client.beta.chat.completions.parse(
+        model="gpt-4o-2024-08-06",
+        response_format=TaskJudgement,
+        messages=[
+            system_message(),
+            {
+                "role": "user",
+                "content": f"""
+                Review the task below and determine whether it violates any of the terms extracted from a contract. Task:
+
+                ```json
+                {task.json()}
+                ```
+
+                Terms extracted from the contract:
+                ```json
+                {terms.json()}
+                ```
+                """
+            }
+        ]
+    )
+    judgement = completion.choices[0].message.parsed
+
+    if not judgement:
+        raise RuntimeError(f"Invalid response from OpenAI API: {completion}")
+
+    return judgement
+
+
+def read_tasks(fpath):
+    """Read the lines from a CSV file."""
+    return [
+        Task(description=r["Task Description"], amount=r["Amount"])
+        for _, r in pd.read_excel(fpath).iterrows()
+    ]
+
+
+if __name__ == "__main__":
+    # file_path = "data/Contract + Amendment example v3 .docx"
+    # text_content = docx_path_to_paragraphs(file_path)
+    # terms = text_to_terms(text_content)
+    # for term in terms:
+    #     print(f"{term.section}: {term.name} - {term.description}\n---")
+
+    cached_data = get_terms_data("Contract + Amendment example v3 .docx")
+    if not cached_data:
+        raise RuntimeError("No cached data found")
+
+    _, terms = cached_data
+    tasks = read_tasks("data/Task example v3.xlsx")
+    for task in tasks[:5]:
+        print(validate_task(task, terms))
+        print("---")

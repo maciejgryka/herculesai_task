@@ -108,5 +108,6 @@ scripts/img/*.png
 .pytest_cache/
 .mypy_cache/
 .cache
+.sesskey
 
 terms_cache/
