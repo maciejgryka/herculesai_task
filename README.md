@@ -25,7 +25,7 @@ echo "OPENAI_API_KEY=<YOUR_KEY_HERE>" > .env
 With `uv` installed, you can now run the following to start the webserver
 
 ```bash
-DEBUG=1 uv run src/herculesai_task/app.py
+uv run src/herculesai_task/app.py
 ```
 
 The first time you run it, it might take several seconds to start, because it will create a virtual environment and install the dependencies. Subsequent runs will be much faster.
