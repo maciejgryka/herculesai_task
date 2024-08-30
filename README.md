@@ -1,5 +1,10 @@
 # HerculesAI Contract Analysis
 
+[![Watch the video walkthrough](https://cdn.loom.com/sessions/thumbnails/ff84a349d13243cb9dff54ee6188c7a3-80a66e3f62322f5d-full-play.gif)](https://www.loom.com/share/ff84a349d13243cb9dff54ee6188c7a3?sid=a61f0346-f637-407b-8aed-c16e9ab419f7)
+
+Watch the video walkthrough above for a detailed explanation of this project.
+
+
 ## Introduction
 This repository contains the solution to the contract analysis task. The original task files are located under `data/`. The code is located under `src/`.
 
@@ -62,7 +67,7 @@ The downside of this approach is cost (more OpenAI tokens used), but the upside 
 
 ## Bonus: Handling ambiguous cases
 
-Handling ambiguous cases was "just" a matter of adding another boolean field to the structure output schema and explaining to the model how to use it. I think it does a reasonabel job of reflecting uncertainty in the answers.
+Handling ambiguous cases was "just" a matter of adding another boolean field to the structure output schema and explaining to the model how to use it. I think it does a reasonable job of reflecting uncertainty in the answers.
 
 ## Technical Choices & Trade-offs
 
